@@ -1,0 +1,3 @@
+#!/bin/sh
+echo building...
+cc editor.c -o editor
