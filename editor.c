@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <time.h>
 
 unsigned int linenum;
@@ -19,26 +18,29 @@ int edit(int argc, char *argv[])
 		dr = 0;
 		fgets(rbuf, 99, stdin);
 
-		if (strcmp(rbuf,":eq\r") == 0) {
-			return 0;
+		if (strcmp(rbuf,":exit\n") == 0) {
+			return 1;
 		}
 
-		if (strcmp(rbuf,":lb\n") == 0) {
-			printf("lastline=%i\n",lastline);
+		if (strcmp(rbuf,":list\n") == 0) {
+			printf("lastline=0x%x\n",lastline);
 			for (int lbf = 0; lbf < lastline; lbf++) {
 				printf("%x -> %s",lbf,buf[lbf]);
 			}
+			printf("reached end of buffer\n");
 			dr = 1;
 		}
 
 		if (strcmp(rbuf,":help\n") == 0) {
-	printf("\n:eq = quit   :lb = list buffer\n");
-	printf(":bg = beginning of buffer\n");
-	printf(":ed = end of buffer\n");
+	printf("\n:eq = quit (no write)   :list = list buffer\n");
+	printf(":top = beginning of buffer\n");
+	printf(":end = end of buffer\n");
+	printf(":info = editor info\n");
+	printf(":mid = middle of buffer\n");
 	printf(":up = move one line up\n");
 	printf(":dn = move one line down\n");
-	printf("\n:wb = write buffer to file\n");
-	printf(":op = open file to buffer\n\n");
+	printf("\n:write = write buffer to file\n");
+	printf(":open = open file to buffer\n\n");
 	printf("writing is buggy, be careful!\n");
 	printf("type to add stuff to the buffer.\n");
 	printf("buffer lines must not start with a colon.\n");
@@ -52,17 +54,17 @@ int edit(int argc, char *argv[])
 			dr = 1;
 		}
 
-		if (strcmp(rbuf,":bg\n") == 0) {
+		if (strcmp(rbuf,":top\n") == 0) {
 			linenum = 0;			
 			dr = 1;
 		}
 
-		if (strcmp(rbuf,":ed\n") == 0) {
+		if (strcmp(rbuf,":end\n") == 0) {
 			linenum = lastline;
 			dr = 1;
 		}
 
-		if (strcmp(rbuf,":md\n") == 0) {
+		if (strcmp(rbuf,":mid\n") == 0) {
 			linenum = lastline/2;
 			dr = 1;
 		}
@@ -75,9 +77,30 @@ int edit(int argc, char *argv[])
 		if (strcmp(rbuf,":dn\n") == 0) {
 			linenum++;
 			dr = 1;
+		}		
+
+		if (strcmp(rbuf,":info\n") == 0) {
+			printf("lastline=0x%x\n",lastline);
+			printf("linenum=0x%x\n",linenum);
+			printf("sizeof buf=0x%lx\n",sizeof(buf));
+			dr = 1;
 		}
 
-		if (strcmp(rbuf,":wb\n") == 0) {
+		if (strcmp(rbuf,":trunc\n") == 0) {
+			printf("this will delete the last line from the file. you sure? (yes/no) ");
+			char option[5];
+			fgets(option,4,stdin);
+			if (strcmp(option,"yes\n") == 0) {
+				lastline--;
+			}
+			else {
+				printf("aborting.\n");
+			}
+			linenum = 0;
+			dr = 1;
+		}
+
+		if (strcmp(rbuf,":write\n") == 0) {
 			char fname[30];
 			if (argc<2) {
 				printf("no filename specified at cmdline\n");
@@ -102,7 +125,7 @@ int edit(int argc, char *argv[])
 			
 		}
 
-		if (strcmp(rbuf,":op\n") == 0) {
+		if (strcmp(rbuf,":open\n") == 0) {
 			char fname[30];
 			int rlinenum = 0;
 			char line[102];
@@ -162,5 +185,7 @@ int main(int argc, char *argv[])
 	}
 	printf("\n");
 	void *m = malloc(sizeof(buf));
-	edit(argc, argv);
+	int r = edit(argc, argv);
+
+	if (r == 1) { return 0; }
 }
